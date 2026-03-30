@@ -1,6 +1,12 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ChatMessage, RoomState, ServerEvent } from "./types";
-import "./styles.css";
 
 const API_WS_URL =
   import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8000/ws";
@@ -12,7 +18,7 @@ const emptyState: RoomState = {
   roundEndTime: null,
 };
 
-function App() {
+export default function GamePage() {
   const [usernameInput, setUsernameInput] = useState("");
   const [username, setUsername] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState("");
@@ -21,6 +27,9 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
   const socketRef = useRef<WebSocket | null>(null);
+  const chatLogRef = useRef<HTMLDivElement | null>(null);
+  /** When true, the next socket `close` is expected (leave room / cleanup), not a server drop. */
+  const intentionalDisconnectRef = useRef(false);
 
   const leaderboard = useMemo(() => {
     return [...Object.entries(roomState.scores)].sort((a, b) => b[1] - a[1]);
@@ -33,6 +42,7 @@ function App() {
   useEffect(() => {
     if (!username) return;
 
+    intentionalDisconnectRef.current = false;
     const socket = new WebSocket(API_WS_URL);
     socketRef.current = socket;
 
@@ -59,10 +69,15 @@ function App() {
     };
 
     socket.onclose = () => {
+      if (intentionalDisconnectRef.current) {
+        intentionalDisconnectRef.current = false;
+        return;
+      }
       setError("Disconnected from server");
     };
 
     return () => {
+      intentionalDisconnectRef.current = true;
       socket.close();
       socketRef.current = null;
     };
@@ -74,12 +89,21 @@ function App() {
         setCountdown(0);
         return;
       }
-      const left = Math.max(0, Math.ceil(roomState.roundEndTime - Date.now() / 1000));
+      const left = Math.max(
+        0,
+        Math.ceil(roomState.roundEndTime - Date.now() / 1000)
+      );
       setCountdown(left);
     }, 250);
 
     return () => window.clearInterval(interval);
   }, [roomState.roundEndTime, roomState.status]);
+
+  useLayoutEffect(() => {
+    const el = chatLogRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [chatMessages]);
 
   function send(type: string, payload: Record<string, unknown> = {}) {
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
@@ -105,18 +129,35 @@ function App() {
     setChatInput("");
   }
 
+  function leaveRoom() {
+    intentionalDisconnectRef.current = true;
+    socketRef.current?.close();
+    socketRef.current = null;
+    setUsername(null);
+    setRoomState(emptyState);
+    setChatMessages([]);
+    setError(null);
+    setCountdown(0);
+  }
+
   if (!username) {
     return (
-      <main className="page">
+      <main className="page page-play">
         <section className="card join-card">
-          <h1>Tap Game Demo</h1>
+          <h1 className="page-heading">Join the room</h1>
+          <p className="muted join-hint">
+            Pick a display name to connect to the tap game and chat.
+          </p>
           <form onSubmit={onJoin} className="join-form">
             <input
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
               placeholder="Enter username"
+              autoComplete="username"
             />
-            <button type="submit">Join Room</button>
+            <button type="submit" className="btn btn-primary">
+              Join room
+            </button>
           </form>
           {error && <p className="error">{error}</p>}
         </section>
@@ -125,16 +166,29 @@ function App() {
   }
 
   return (
-    <main className="page">
-      <h1>Tap Game Demo</h1>
-      <p>Signed in as <strong>{username}</strong></p>
+    <main className="page page-play">
+      <div className="play-toolbar">
+        <div>
+          <h1 className="page-heading">Tap game</h1>
+          <p className="muted play-signed-in">
+            Signed in as <strong>{username}</strong>
+          </p>
+        </div>
+        <button type="button" className="btn btn-outline" onClick={leaveRoom}>
+          Leave room
+        </button>
+      </div>
       {error && <p className="error">{error}</p>}
 
       <section className="layout">
-        <div className="card">
+        <div className="card card-elevated">
           <h2>Game</h2>
-          <p>Status: <strong>{roomState.status}</strong></p>
-          <p>Countdown: <strong>{countdown}s</strong></p>
+          <p>
+            Status: <strong className="status-pill">{roomState.status}</strong>
+          </p>
+          <p>
+            Countdown: <strong>{countdown}s</strong>
+          </p>
           <button
             className="tap-button"
             disabled={roomState.status !== "active"}
@@ -142,40 +196,57 @@ function App() {
           >
             TAP
           </button>
-          <button onClick={() => send("start_round")}>Start Round</button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-block"
+            onClick={() => send("start_round")}
+          >
+            Start round
+          </button>
         </div>
 
-        <div className="card">
+        <div className="card card-elevated">
           <h2>Players ({roomState.players.length})</h2>
-          <ul>
+          <ul className="player-list">
             {roomState.players.map((player) => (
               <li key={player.id}>
                 {player.name}
-                {player.isBot ? " (bot)" : ""}
+                {player.isBot ? (
+                  <span className="tag tag-bot">bot</span>
+                ) : null}
               </li>
             ))}
           </ul>
 
           <h2>Leaderboard</h2>
-          <ol>
+          <ol className="leaderboard">
             {leaderboard.map(([player, score]) => (
               <li key={player}>
-                {player}
-                {botNames.has(player) ? " (bot)" : ""}: {score}
+                <span className="lb-name">
+                  {player}
+                  {botNames.has(player) ? (
+                    <span className="tag tag-bot">bot</span>
+                  ) : null}
+                </span>
+                <span className="lb-score">{score}</span>
               </li>
             ))}
           </ol>
         </div>
 
-        <div className="card chat-card">
+        <div className="card card-elevated chat-card">
           <h2>Chat</h2>
-          <div className="chat-log">
+          <div className="chat-log" ref={chatLogRef}>
             {chatMessages.map((m, idx) => (
               <p
                 key={`${m.timestamp}-${idx}`}
                 className={m.system ? "system" : m.isBot ? "bot-msg" : ""}
               >
-                <strong>{m.sender}{m.isBot ? " (bot)" : ""}:</strong> {m.text}
+                <strong>
+                  {m.sender}
+                  {m.isBot ? " (bot)" : ""}:
+                </strong>{" "}
+                {m.text}
               </p>
             ))}
           </div>
@@ -183,14 +254,14 @@ function App() {
             <input
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Type message"
+              placeholder="Type a message"
             />
-            <button type="submit">Send</button>
+            <button type="submit" className="btn btn-primary">
+              Send
+            </button>
           </form>
         </div>
       </section>
     </main>
   );
 }
-
-export default App;

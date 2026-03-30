@@ -103,11 +103,12 @@ function MemoryBrowser() {
   }
 
   return (
-    <main className="page">
-      <div className="page-header">
-        <h1>Bot Memory Browser</h1>
-        <a href="/">Back to game</a>
-      </div>
+    <main className="page page-memories">
+      <h1 className="page-heading">Bot memories</h1>
+      <p className="muted memories-intro">
+        Stored notes the bot uses for future chats. Pick a user to inspect
+        entries.
+      </p>
       {error && <p className="error">{error}</p>}
       <section className="layout">
         <div className="card">
