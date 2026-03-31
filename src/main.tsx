@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
 import GamePage from "./GamePage";
 import MemoryBrowser from "./MemoryBrowser";
+import TraceDashboardPage from "./TraceDashboardPage";
 import "./styles.css";
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/" element={<HomePage />} />
           <Route path="/play" element={<GamePage />} />
           <Route path="/memories" element={<MemoryBrowser />} />
+          <Route path="/trace" element={<TraceDashboardPage />} />
         </Routes>
       </Shell>
     </BrowserRouter>

@@ -18,6 +18,14 @@ export default function Navbar() {
           <NavLink to="/memories" className="nav-link">
             Memories
           </NavLink>
+          <NavLink
+            to="/trace"
+            className="nav-link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Traces
+          </NavLink>
         </nav>
       </div>
     </header>

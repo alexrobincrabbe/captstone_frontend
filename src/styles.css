@@ -545,6 +545,220 @@ input:focus {
   color: #a5b4fc;
 }
 
+.trace-link {
+  margin-left: 8px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.trace-link:hover {
+  text-decoration: underline;
+}
+
+.trace-message-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trace-open-btn {
+  width: 100%;
+  text-align: left;
+}
+
+.trace-open-btn-active {
+  border-color: rgba(124, 231, 198, 0.55);
+  background: rgba(124, 231, 198, 0.12);
+  color: var(--accent);
+}
+
+.trace-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trace-flow {
+  position: relative;
+  width: 560px;
+  height: 1060px;
+  z-index: 2;
+}
+
+.trace-diagram-wrap {
+  position: relative;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  margin-bottom: 12px;
+  isolation: isolate;
+}
+
+.trace-diagram-wrap-vertical {
+  width: 100%;
+  max-width: 580px;
+  flex: 1 1 580px;
+}
+
+.trace-diagram-lines {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.trace-flow-node {
+  position: absolute;
+  border: 1px solid var(--border);
+  background: #121722;
+  color: var(--muted);
+  border-radius: 10px;
+  min-width: 120px;
+  text-align: center;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  z-index: 3;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.trace-flow-layout {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.trace-diagram-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trace-right-panel {
+  flex: 1 1 380px;
+  min-width: 320px;
+}
+
+.trace-diagram-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 12, 0.72);
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.trace-diagram-modal-content {
+  width: min(92vw, 620px);
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #121722;
+  padding: 16px;
+}
+
+.trace-diagram-wrap-popup {
+  max-width: none;
+}
+
+.trace-flow-node-active {
+  color: var(--accent);
+  border-color: rgba(124, 231, 198, 0.45);
+  background: rgba(124, 231, 198, 0.1);
+}
+
+.trace-flow-node-selected {
+  outline: 2px solid rgba(124, 231, 198, 0.6);
+  outline-offset: 1px;
+}
+
+.trace-node-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px 12px;
+}
+
+.trace-node-card summary {
+  cursor: pointer;
+}
+
+.trace-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.trace-grid pre {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  overflow-x: auto;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.trace-state-header {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: minmax(140px, 0.8fr) 1fr 1fr;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.trace-state-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.trace-state-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.8fr) 1fr 1fr;
+  gap: 8px;
+  align-items: start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.trace-state-row-changed {
+  border-color: rgba(124, 231, 198, 0.55);
+  background: rgba(124, 231, 198, 0.1);
+  box-shadow: 0 0 0 1px rgba(124, 231, 198, 0.18) inset;
+}
+
+.trace-state-key {
+  font-weight: 700;
+  color: #dbe6ff;
+  word-break: break-word;
+}
+
+.trace-state-before,
+.trace-state-after {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .error {
   color: var(--danger);
   font-weight: 600;

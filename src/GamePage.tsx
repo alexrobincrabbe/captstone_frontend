@@ -6,7 +6,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChatMessage, RoomState, ServerEvent } from "./types";
+import { Link } from "react-router-dom";
+import { ChatMessage, ChatTraceEvent, RoomState, ServerEvent } from "./types";
+import {
+  appendSessionTraceEvent,
+  appendSessionTraceMessage,
+  listSessionTraceEvents,
+  resetSessionTraceMessages,
+} from "./sessionTraceStore";
 
 const API_WS_URL =
   import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8000/ws";
@@ -24,6 +31,7 @@ export default function GamePage() {
   const [chatInput, setChatInput] = useState("");
   const [roomState, setRoomState] = useState<RoomState>(emptyState);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [traceEvents, setTraceEvents] = useState<ChatTraceEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
   const socketRef = useRef<WebSocket | null>(null);
@@ -38,6 +46,10 @@ export default function GamePage() {
   const botNames = useMemo(() => {
     return new Set(roomState.players.filter((p) => p.isBot).map((p) => p.name));
   }, [roomState.players]);
+
+  useEffect(() => {
+    setTraceEvents(listSessionTraceEvents());
+  }, []);
 
   useEffect(() => {
     if (!username) return;
@@ -59,7 +71,14 @@ export default function GamePage() {
       }
 
       if (data.type === "chat_message" && data.message) {
-        setChatMessages((prev) => [...prev, data.message!].slice(-200));
+        const sessionMessage = appendSessionTraceMessage(data.message);
+        setChatMessages((prev) => [...prev, sessionMessage].slice(-200));
+        return;
+      }
+
+      if (data.type === "chat_trace" && data.trace) {
+        appendSessionTraceEvent(data.trace);
+        setTraceEvents(listSessionTraceEvents());
         return;
       }
 
@@ -118,6 +137,8 @@ export default function GamePage() {
     if (!trimmed) return;
     setError(null);
     setChatMessages([]);
+    setTraceEvents([]);
+    resetSessionTraceMessages();
     setUsername(trimmed);
   }
 
@@ -136,8 +157,51 @@ export default function GamePage() {
     setUsername(null);
     setRoomState(emptyState);
     setChatMessages([]);
+    setTraceEvents([]);
+    resetSessionTraceMessages();
     setError(null);
     setCountdown(0);
+  }
+
+  function getMessageTraceId(message: ChatMessage): string | null {
+    let candidates = traceEvents.filter(() => false);
+
+    if (!message.system && !message.isBot) {
+      candidates = traceEvents.filter(
+        (t) =>
+          t.source.eventType === "chat" &&
+          t.source.sender === message.sender &&
+          t.source.text === message.text &&
+          Math.abs(t.timestamp - message.timestamp) <= 120
+      );
+    } else if (message.system) {
+      const joined = message.text.match(/^(.+)\s+joined the room$/i);
+      if (joined) {
+        const joinedUser = (joined[1] || "").trim();
+        candidates = traceEvents.filter(
+          (t) =>
+            t.source.eventType === "player_joined" &&
+            t.source.sender === joinedUser &&
+            Math.abs(t.timestamp - message.timestamp) <= 10
+        );
+      } else if (message.text.trim().toLowerCase() === "round ended") {
+        candidates = traceEvents.filter(
+          (t) =>
+            t.source.eventType === "round_ended" &&
+            Math.abs(t.timestamp - message.timestamp) <= 10
+        );
+      }
+    }
+
+    if (candidates.length === 0) {
+      return null;
+    }
+    const winner = candidates.sort(
+      (a, b) =>
+        Math.abs(a.timestamp - message.timestamp) -
+        Math.abs(b.timestamp - message.timestamp)
+    )[0];
+    return winner?.traceId ?? null;
   }
 
   if (!username) {
@@ -238,16 +302,34 @@ export default function GamePage() {
           <h2>Chat</h2>
           <div className="chat-log" ref={chatLogRef}>
             {chatMessages.map((m, idx) => (
-              <p
-                key={`${m.timestamp}-${idx}`}
-                className={m.system ? "system" : m.isBot ? "bot-msg" : ""}
-              >
-                <strong>
-                  {m.sender}
-                  {m.isBot ? " (bot)" : ""}:
-                </strong>{" "}
-                {m.text}
-              </p>
+              (() => {
+                const traceId = getMessageTraceId(m);
+                return (
+                  <p
+                    key={`${m.timestamp}-${idx}`}
+                    className={m.system ? "system" : m.isBot ? "bot-msg" : ""}
+                  >
+                    <strong>
+                      {m.sender}
+                      {m.isBot ? " (bot)" : ""}:
+                    </strong>{" "}
+                    {m.text}
+                    {traceId ? (
+                      <>
+                        {" "}
+                        <Link
+                          className="trace-link"
+                          to={`/trace?message=${encodeURIComponent(traceId)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View trace
+                        </Link>
+                      </>
+                    ) : null}
+                  </p>
+                );
+              })()
             ))}
           </div>
           <form onSubmit={onSendChat} className="chat-form">
